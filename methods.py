@@ -1,11 +1,11 @@
 import ctypes
 import math
 from functools import lru_cache
-from typing import List
+
 from tabulate import tabulate
 
 
-def check_equidistant_nodes(nodes):
+def check_nodes(nodes: list) -> bool:
     """Проверить, что узлы равноотстоящие"""
     h = nodes[1] - nodes[0]
     for i in range(len(nodes) - 1):
@@ -15,46 +15,54 @@ def check_equidistant_nodes(nodes):
 
 
 @lru_cache(maxsize=None)
-def get_dy(id_y: int) -> List[List[float]]:
-    y = ctypes.cast(id_y, ctypes.py_object).value
-    dy = [[i] for i in y]
+def get_finite_differences(obj_id: int) -> list:
+    y = ctypes.cast(obj_id, ctypes.py_object).value
+
+    y_differences = [[i] for i in y]
     for i in range(1, len(y)):
         for j in range(len(y) - i):
-            dy[j].append(dy[j + 1][-1] - dy[j][-1])
-    field_names = ['yi'] + [f'd{i} Yi' for i in range(1, len(dy))]
-    print("\nКонечные разности:\n" + tabulate(dy, field_names, tablefmt='grid', floatfmt='2.4f') + "\n")
-    return dy
+            y_differences[j].append(y_differences[j + 1][-1] - y_differences[j][-1])
+    field_names = ['yi'] + [f'd{i} Yi' for i in range(1, len(y_differences))]
+    print('\nКонечные разности:\n' + tabulate(y_differences, field_names, tablefmt='grid', floatfmt='2.4f') + "\n")
+    return y_differences
 
 
-def calc_t(k: int, t: float, back=False) -> float:
-    t_mul = 1
+def get_t(k: int, t: float, back=False) -> float:
+    curr_t = 1
     for i in range(k):
-        t_mul *= (t + i) if back else (t - i)
-    return t_mul / math.factorial(k)
+        curr_t *= (t + i) if back else (t - i)
+    return curr_t / math.factorial(k)
 
 
-def newton(x: List[float], y: List[float], x0: float):
-    if not check_equidistant_nodes(x):
-        raise Exception('Узлы не являются равноотстоящими, метод Ньютона с конечными разностями не применим.')
+def newton(x: list, y: list, x0: float):
+    if not check_nodes(x):
+        raise Exception('Заданы неравноотстоящие узлы, нельзя применить метод Ньютона с конечными разностями!')
     if x0 in x:
         return y[x.index(x0)]
-    dy = get_dy(id(y))
+
+    dy = get_finite_differences(id(y))
     h = (x[1] - x[0])
-    j = max(int(x0 // h) - int(x[0] // h), 1)
+    nearest_point_index = max(int(x0 // h) - int(x[0] // h), 1)
+
     result = 0
-    if x0 - x[0] < x[-1] - x0:
-        j -= 1
-        t = (x0 - x[j]) / h
-        for i in range(len(dy) - j):
-            result += dy[j][i] * calc_t(i, t)
-    else:
-        t = (x0 - x[j]) / h
-        for i in range(j, -1, -1):
-            result += dy[i][j - i] * calc_t(j - i, t, back=True)
+    if x0 - x[0] < x[-1] - x0:  # идем вперёд
+        nearest_point_index -= 1
+        t = (x0 - x[nearest_point_index]) / h
+        for i in range(len(dy) - nearest_point_index):
+            result += dy[nearest_point_index][i] * get_t(i, t)
+    else:  # иначе идём назад
+        t = (x0 - x[nearest_point_index + 1]) / h
+        for i in range(nearest_point_index):
+            result += dy[i][nearest_point_index + 1 - i] * get_t(i, t, back=True)
+
+        #nearest_point_index -= 1
+        #t = (x0 - x[nearest_point_index]) / h
+        #for i in range(len(dy) - nearest_point_index):
+        #    result += dy[nearest_point_index][i] * get_t(i, t)
     return result
 
 
-def lagrange(x: List[float], y: List[float], x0: float):
+def lagrange(x: list, y: list, x0: float):
     result = 0
     for j in range(len(y)):
         mul = 1

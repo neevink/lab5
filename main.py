@@ -33,7 +33,7 @@ def create_dataset(get_line: Callable[..., str]):
         y_generated = list(map(float, get_line().split(',')))
         if len(x_generated) != len(y_generated):
             raise
-        x_generated, y_generated = zip(*sorted(zip(x_generated, y_generated)))
+        x_generated, y_generated = zip(*sorted(zip(x_generated, y_generated)))  # сортируем данные из файла
     except:
         print('Введите корректную таблицу.')
         return None

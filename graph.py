@@ -1,12 +1,14 @@
+from typing import Callable
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def graph(data, x0, y0, interpolate, title: str):
+def graph(data, x0, y0, interpolate: Callable, title: str):
     data_x, data_y = data
     plt.figure()
-    plt.title = title
     plt.grid(True)
+    plt.title = title
 
     plt.scatter(data_x, data_y, s=20, label='Исходные данные', zorder=10)
 
@@ -17,5 +19,5 @@ def graph(data, x0, y0, interpolate, title: str):
     plt.plot(x0, y0, 'o', markersize=5, zorder=10, label='Искомое значение')
 
     plt.legend(fontsize='x-small')
-    plt.savefig(f'{title.replace(" ", "_")}.png')
+    plt.savefig(f'{title.replace(" ", "")}.png')
     plt.show()
