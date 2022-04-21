@@ -3,36 +3,40 @@
 
 
 from typing import Callable
+import math
 
 import numpy
-from graph import *
-from methods import *
+from tabulate import tabulate
 
-methods = (  # тут заюзай namedtuple
+from graph import graph
+from methods import newton, lagrange
+
+methods = (  # TODO тут заюзай namedtuple
     (newton, 'Многочлен Ньютона с конечными разностями'),
     (lagrange, 'Многочлен Лагранжа')
 )
 
 functions = (
-    (lambda t: math.cos(t), 'cos(x)'),
-    (lambda t: 2 ** t, '2^x'),
-    (lambda t: t ** 7 - 3 * (t ** 4) + t ** 3 - 5*t, 'x^7 - 3x^4 + x^3 - 5x')
+    (lambda x: math.sin(x), 'sin(x)'),
+    (lambda x: 2 ** x, '2^x'),
+    (lambda x: x ** 3 + 2 * x ** 2 - 5 * x - 6, 'x^3 + 2*x^2 - 5*x - 6')  # [-5; 5]
 )
 
+MIN_POINTS = 2
 MAX_POINTS = 20
 
 
 def create_dataset(get_line: Callable[..., str]):
     try:
-        x = list(map(float, get_line().split(',')))
-        y = list(map(float, get_line().split(',')))
-        if len(x) != len(y):
+        x_generated = list(map(float, get_line().split(',')))
+        y_generated = list(map(float, get_line().split(',')))
+        if len(x_generated) != len(y_generated):
             raise
-        x, y = zip(*sorted(zip(x, y)))
+        x_generated, y_generated = zip(*sorted(zip(x_generated, y_generated)))
     except:
-        print("Введите корректную таблицу.")
+        print('Введите корректную таблицу.')
         return None
-    return [x, y]
+    return [x_generated, y_generated]
 
 
 def number_input(prompt: str, mn=1.0, mx=math.inf) -> float:
@@ -41,7 +45,7 @@ def number_input(prompt: str, mn=1.0, mx=math.inf) -> float:
         try:
             num = float(ans)
             if num < mn or num > mx:
-                print(f'Число должно быть в интервале [{round(mn, 1)}, {round(mx, 1)}].')
+                print(f'Число должно быть в интервале [{round(mn, 1)}; {round(mx, 1)}].')
                 continue
             return num
         except:
@@ -52,18 +56,18 @@ def float_interval_choice() -> [float, float]:
     while True:
         ans = input('Введите интервал: ').split()
         try:
-            left, right = float(ans[0]), float(ans[1])
-            if left >= right:
+            l, r = float(ans[0]), float(ans[1])
+            if l >= r:
                 print(f'Введите корректный интервал.')
                 continue
-            return left, right
+            return l, r
         except:
             continue
 
 
 def print_indexed_list(indexed_list, start=1):
-    for index, item in enumerate(indexed_list, start=start):
-        print(f'{index}. {item}')
+    for indx, item in enumerate(indexed_list, start=start):
+        print(f'{indx}. {item}')
 
 
 def bool_choice(prompt: str) -> bool:
@@ -72,51 +76,49 @@ def bool_choice(prompt: str) -> bool:
 
 def read_table():
     while True:
-        filename = input("Введите имя файла для загрузки исходных данных и интервала "
-                         "или пустую строку, чтобы ввести вручную: ")
+        filename = input('Введите путь файла для загрузки исходных данных, пустую строку - чтобы ввести вручную: ')
         try:
-            input_function = input if filename == '' else open(filename, "r").readline
+            input_function = input if filename == '' else open(filename, 'r').readline
             dataset = create_dataset(input_function)
             if dataset is not None:
                 return dataset
         except FileNotFoundError:
-            print('Файл не найден.')
+            print('Файл не найден!')
 
 
 if __name__ == '__main__':
     while True:
-        if bool_choice('Вы хотите использовать исходные данные на основе функции?'):
-            print('Выберите функцию. ')
+        if bool_choice('Сгенерировать входные даннные на основе функции?'):
+            print('Выберите функцию:')
             print_indexed_list(map(lambda tup: tup[1], functions))
-            index = int(number_input('Введите номер: ', mn=1, mx=len(functions)))
+            index = int(number_input('Номер: ', mn=1, mx=len(functions)))
             func, _ = functions[index - 1]
             left, right = float_interval_choice()
             nodes = int(
-                number_input(f'Введите количество узлов интерполяции [2; {MAX_POINTS}]: ', mn=2, mx=MAX_POINTS)
+                number_input(f'Количество узлов интерполяции [{MIN_POINTS}; {MAX_POINTS}]: ', mn=MIN_POINTS, mx=MAX_POINTS)
             )
 
-            x = list(numpy.linspace(left, right, nodes))
-            y = list(map(lambda t: func(t), x))
-            dataset = [x, y]
+            x_vals = list(numpy.linspace(left, right, nodes))
+            y_vals = list(map(lambda t: func(t), x_vals))
+            dataset = [x_vals, y_vals]
         else:
             dataset = read_table()
             left = min(dataset[0])
             right = max(dataset[0])
 
-        print("\nИсходные данные:\n" + tabulate(dataset, tablefmt='grid', floatfmt='2.4f') + "\n")
+        print('\nИсходные данные:\n' + tabulate(dataset, tablefmt='grid', floatfmt='2.4f') + "\n")
 
         x0 = number_input('Введите x0: ', mn=left, mx=right)
 
         print('Результаты:')
-        x, y = dataset
+        x_vals, y_vals = dataset
         for solve, name in methods:
             try:
-                result = solve(x, y, x0)
-                graph(dataset, x0, result, solve, name)
+                result = solve(x_vals, y_vals, x0)
                 print(name + ':', result)
+                graph(dataset, x0, result, solve, name)
             except Exception as e:
-                print(e)
+                raise e
 
         if input('\nЕще раз? [y/n] ') != 'y':
             break
-

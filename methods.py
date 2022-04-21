@@ -6,6 +6,7 @@ from tabulate import tabulate
 
 
 def check_equidistant_nodes(nodes):
+    """Проверить, что узлы равноотстоящие"""
     h = nodes[1] - nodes[0]
     for i in range(len(nodes) - 1):
         if not math.isclose(nodes[i + 1] - nodes[i], h):
@@ -41,7 +42,7 @@ def newton(x: List[float], y: List[float], x0: float):
 
     dy = get_dy(id(y), len(y))
     h = (x[1] - x[0])
-    j = int(x0 // h) - int(x[0] // h)
+    j = max(int(x0 // h) - int(x[0] // h), 1)
     result = 0
     if x0 - x[0] < x[-1] - x0:
         j -= 1
