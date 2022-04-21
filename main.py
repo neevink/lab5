@@ -1,7 +1,7 @@
 # Неевин Кирилл P3213
 # Лабораторная работа #5
 
-
+from collections import namedtuple
 from typing import Callable
 import math
 
@@ -11,19 +11,20 @@ from tabulate import tabulate
 from graph import graph
 from methods import newton, lagrange
 
-methods = (  # TODO тут заюзай namedtuple
-    (newton, 'Многочлен Ньютона с конечными разностями'),
-    (lagrange, 'Многочлен Лагранжа')
-)
 
-functions = (
-    (lambda x: math.sin(x), 'sin(x)'),
-    (lambda x: 2 ** x, '2^x'),
-    (lambda x: x ** 3 + 2 * x ** 2 - 5 * x - 6, 'x^3 + 2*x^2 - 5*x - 6')  # [-5; 5]
-)
+Method = namedtuple('Method', ['name', 'interpolate'])
+Function = namedtuple('Function', ['func', 'display_name'])
 
-MIN_POINTS = 2
-MAX_POINTS = 20
+METHODS = (
+    Method('Многочлен Ньютона с конечными разностями', newton),
+    Method('Многочлен Лагранжа', lagrange),
+)
+FUNCTIONS = (
+    Function(lambda x: x ** 3 + 2 * x ** 2 - 5 * x - 6, 'x^3 + 2*x^2 - 5*x - 6'),  # [-5; 5]
+    Function(lambda x: 2 ** x, '2^x'),
+    Function(lambda x: math.sin(x), 'sin(x)'),
+)
+MIN_POINTS, MAX_POINTS = 2, 20
 
 
 def create_dataset(get_line: Callable[..., str]):
@@ -90,14 +91,13 @@ if __name__ == '__main__':
     while True:
         if bool_choice('Сгенерировать входные даннные на основе функции?'):
             print('Выберите функцию:')
-            print_indexed_list(map(lambda tup: tup[1], functions))
-            index = int(number_input('Номер: ', mn=1, mx=len(functions)))
-            func, _ = functions[index - 1]
+            print_indexed_list(map(lambda f: f.display_name, FUNCTIONS))
+            index = int(number_input('Номер: ', mn=1, mx=len(FUNCTIONS))) - 1
+            func, _ = FUNCTIONS[index]
             left, right = float_interval_choice()
             nodes = int(
                 number_input(f'Количество узлов интерполяции [{MIN_POINTS}; {MAX_POINTS}]: ', mn=MIN_POINTS, mx=MAX_POINTS)
             )
-
             x_vals = list(numpy.linspace(left, right, nodes))
             y_vals = list(map(lambda t: func(t), x_vals))
             dataset = [x_vals, y_vals]
@@ -105,20 +105,16 @@ if __name__ == '__main__':
             dataset = read_table()
             left = min(dataset[0])
             right = max(dataset[0])
-
         print('\nИсходные данные:\n' + tabulate(dataset, tablefmt='grid', floatfmt='2.4f') + "\n")
-
         x0 = number_input('Введите x0: ', mn=left, mx=right)
-
         print('Результаты:')
         x_vals, y_vals = dataset
-        for solve, name in methods:
+        for meth in METHODS:
             try:
-                result = solve(x_vals, y_vals, x0)
-                print(name + ':', result)
-                graph(dataset, x0, result, solve, name)
+                result = meth.interpolate(x_vals, y_vals, x0)
+                print(meth.name + ':', result)
+                graph(dataset, x0, result, meth.interpolate, meth.name)
             except Exception as e:
                 raise e
-
         if input('\nЕще раз? [y/n] ') != 'y':
             break
