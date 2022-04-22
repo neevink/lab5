@@ -30,35 +30,39 @@ def get_finite_differences(obj_id: int) -> list:
 def get_t(k: int, t: float, back=False) -> float:
     curr_t = 1
     for i in range(k):
-        curr_t *= (t + i) if back else (t - i)
+        if back:
+            curr_t *= (t + i)
+        else:
+            curr_t *= (t - i)
     return curr_t / math.factorial(k)
 
 
 def newton(x: list, y: list, x0: float):
     if not check_nodes(x):
-        raise Exception('Заданы неравноотстоящие узлы, нельзя применить метод Ньютона с конечными разностями!')
+        raise Exception('Узлы не являются равноотстоящими, метод Ньютона с конечными разностями не применим.')
     if x0 in x:
         return y[x.index(x0)]
 
     dy = get_finite_differences(id(y))
     h = (x[1] - x[0])
-    nearest_point_index = max(int(x0 // h) - int(x[0] // h), 1)
-
+    nearest_point = -1
+    for index in range(len(x)):
+        if x[index] >= x0:
+            nearest_point = index - 1
+            break
     result = 0
-    if x0 - x[0] < x[-1] - x0:  # идем вперёд
-        nearest_point_index -= 1
-        t = (x0 - x[nearest_point_index]) / h
-        for i in range(len(dy) - nearest_point_index):
-            result += dy[nearest_point_index][i] * get_t(i, t)
-    else:  # иначе идём назад
-        t = (x0 - x[nearest_point_index + 1]) / h
-        for i in range(nearest_point_index):
-            result += dy[i][nearest_point_index + 1 - i] * get_t(i, t, back=True)
-
-        #nearest_point_index -= 1
-        #t = (x0 - x[nearest_point_index]) / h
-        #for i in range(len(dy) - nearest_point_index):
-        #    result += dy[nearest_point_index][i] * get_t(i, t)
+    if x0 - x[0] < x[-1] - x0:
+        t = (x0 - x[nearest_point]) / h
+        for i in range(len(dy) - nearest_point):
+            result += dy[nearest_point][i] * get_t(i, t)
+    else:
+        try:
+            nearest_point += 1
+            t = (x0 - x[nearest_point]) / h
+            for i in range(nearest_point, -1, -1):
+                result += dy[i][nearest_point - i] * get_t(nearest_point - i, t, back=True)
+        except Exception:
+            return -10
     return result
 
 
